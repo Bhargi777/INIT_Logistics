@@ -64,71 +64,107 @@ button {
     margin-top: 10px;
     font-size: 0.9rem;
 }
+.modal {
+    display: none;
+    position: fixed;
+    inset: 0;
+    background: rgba(0,0,0,0.5);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.modal-content {
+    background: #fff;
+    padding: 20px;
+    border-radius: 14px;
+    width: 90%;
+    max-width: 320px;
+    text-align: center;
+}
+
+.modal-content img {
+    width: 120px;
+    height: 120px;
+    object-fit: cover;
+    border-radius: 12px;
+    margin-bottom: 10px;
+}
+
 </style>
 </head>
 
 <body>
 <div class="container">
     <div class="card">
-        <h2>INIT Attendance</h2>
+    <!-- Logo -->
+    <div style="text-align:center; margin-bottom:10px;">
+        <img src="INIT Logo.jpeg" alt="INIT Logo" style="width:80px;">
+    </div>
 
-        <div id="reader"></div>
-        <button class="stop" onclick="stopScanner()">Stop Camera</button>
+    <h2>INIT Attendance</h2>
 
-        <div class="student-box" id="studentBox">
-            <img id="studentImg">
-            <p><strong id="studentName"></strong></p>
-            <p id="studentRoll"></p>
-            <p id="studentWing"></p>
-            <button class="primary" onclick="submitAttendance()">Confirm Attendance</button>
-        </div>
+    <!-- Camera Reader -->
+    <div id="reader"></div>
 
-        <div class="status" id="status"></div>
+    <!-- Controls -->
+    <button class="primary" onclick="startScanner()">Start Camera</button>
+    <button class="stop" onclick="stopScanner()">Stop Camera</button>
+
+    <div class="status" id="status"></div>
+</div>
+
+<!-- Modal Popup -->
+<div class="modal" id="studentModal">
+    <div class="modal-content">
+        <img id="studentImg">
+        <h3 id="studentName"></h3>
+        <p id="studentRoll"></p>
+        <p id="studentWing"></p>
+
+        <button class="primary" onclick="submitAttendance()">Mark Attendance</button>
+        <button class="stop" onclick="closeModal()">Cancel</button>
     </div>
 </div>
 
+</div>
+
 <script>
-// The google form details
 const FORM_ID = "1FAIpQLScrcMu_3glLLmjs2S8rTrF5OwjCY-_ltLZREQVflhExxRo5NA"; 
 const ENTRY_ROLL = "entry.1907581899"; 
 const ENTRY_NAME = "entry.1322263500";
 const ENTRY_WING = "entry.1752723111";
 
-
 let students = {};
 let scannedStudent = null;
-let qr;
+let qr = new Html5Qrcode("reader");
 
-// Loading the students.json
+// Load students.json
 fetch("students.json")
 .then(res => res.json())
 .then(data => students = data);
 
-// Staring the scanner
-qr = new Html5Qrcode("reader");
-qr.start(
-    { facingMode: "environment" },
-    { fps: 10, qrbox: 250 },
-    onScanSuccess
-);
+// Start camera manually
+function startScanner() {
+    qr.start(
+        { facingMode: "environment" },
+        { fps: 10, qrbox: 250 },
+        onScanSuccess
+    );
+    showStatus("Camera started");
+}
 
-
+// On QR scan
 function onScanSuccess(decodedText) {
     let qrData;
-
     try {
         qrData = JSON.parse(decodedText);
     } catch {
-        showStatus(" Invalid QR format");
+        showStatus("Invalid QR format");
         return;
     }
 
     const { name, roll, wing } = qrData;
-
-    if (!name || !roll || !wing) {
-        showStatus("Incomplete QR data");
-        return;
-    }
 
     if (!students[roll]) {
         showStatus("Roll number not found");
@@ -142,12 +178,11 @@ function onScanSuccess(decodedText) {
     document.getElementById("studentRoll").textContent = "Roll: " + roll;
     document.getElementById("studentWing").textContent = "Wing: " + wing;
 
-    document.getElementById("studentBox").style.display = "block";
     qr.pause();
+    openModal();
 }
 
-
-// Submitting the attendance to the google Form
+// Submit attendance
 function submitAttendance() {
     const url =
         `https://docs.google.com/forms/d/e/${FORM_ID}/formResponse?` +
@@ -157,18 +192,28 @@ function submitAttendance() {
 
     fetch(url, { mode: "no-cors" });
 
-    showStatus("Attendance Marked");
-    document.getElementById("studentBox").style.display = "none";
+    showStatus("Attendance marked");
+    closeModal();
 
-    setTimeout(() => qr.resume(), 2000);
+    setTimeout(() => qr.resume(), 1500);
 }
 
-// Stopping the scanner
+// Modal helpers
+function openModal() {
+    document.getElementById("studentModal").style.display = "flex";
+}
+
+function closeModal() {
+    document.getElementById("studentModal").style.display = "none";
+}
+
+// Stop camera
 function stopScanner() {
     qr.stop();
+    showStatus("Camera stopped");
 }
 
-// Displaying status messages
+// Status message
 function showStatus(msg) {
     document.getElementById("status").textContent = msg;
 }
