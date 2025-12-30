@@ -259,28 +259,32 @@ function clearAllAttendance() {
 function showStatus(msg) {
     document.getElementById("status").textContent = msg;
 }
-
-function exportCSV() {
+function exportExcel() {
     if (attendanceLog.length === 0) {
         alert("No attendance data to export.");
         return;
     }
 
-    let csv = "Roll,Name,Wing,Time\n";
+    // Convert data to worksheet format
+    const worksheetData = [
+        ["Roll", "Name", "Wing", "Time"],
+        ...attendanceLog.map(row => [
+            row.roll,
+            row.name,
+            row.wing,
+            row.time
+        ])
+    ];
 
-    attendanceLog.forEach(row => {
-        csv += `"${row.roll}","${row.name}","${row.wing}","${row.time}"\n`;
-    });
+    const worksheet = XLSX.utils.aoa_to_sheet(worksheetData);
+    const workbook = XLSX.utils.book_new();
 
-    const blob = new Blob([csv], { type: "text/csv;charset=utf-8;" });
-    const url = URL.createObjectURL(blob);
+    XLSX.utils.book_append_sheet(workbook, worksheet, "Attendance");
 
-    const link = document.createElement("a");
-    link.href = url;
-    link.download = `INIT_Attendance_${new Date().toISOString().slice(0,10)}.csv`;
-    link.click();
-
-    URL.revokeObjectURL(url);
+    XLSX.writeFile(
+        workbook,
+        `INIT_Attendance_${new Date().toISOString().slice(0,10)}.xlsx`
+    );
 }
 
 window.onload = () => {
