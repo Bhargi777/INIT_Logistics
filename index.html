@@ -1,0 +1,177 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>INIT QR Attendance</title>
+
+<script src="https://unpkg.com/html5-qrcode"></script>
+
+<style>
+body {
+    font-family: system-ui, sans-serif;
+    background: #f4f6f9;
+    margin: 0;
+    padding: 20px;
+}
+.container {
+    max-width: 420px;
+    margin: auto;
+}
+.card {
+    background: #fff;
+    padding: 16px;
+    border-radius: 12px;
+    box-shadow: 0 4px 10px rgba(0,0,0,0.08);
+}
+h2 {
+    text-align: center;
+    color: #28a745;
+}
+#reader {
+    width: 100%;
+}
+.student-box {
+    text-align: center;
+    display: none;
+}
+.student-box img {
+    width: 140px;
+    height: 140px;
+    object-fit: cover;
+    border-radius: 12px;
+    margin-bottom: 10px;
+}
+button {
+    width: 100%;
+    padding: 12px;
+    border: none;
+    border-radius: 8px;
+    font-weight: bold;
+    margin-top: 10px;
+    cursor: pointer;
+}
+.primary {
+    background: #28a745;
+    color: #fff;
+}
+.stop {
+    background: #dc3545;
+    color: #fff;
+}
+.status {
+    text-align: center;
+    margin-top: 10px;
+    font-size: 0.9rem;
+}
+</style>
+</head>
+
+<body>
+<div class="container">
+    <div class="card">
+        <h2>INIT Attendance</h2>
+
+        <div id="reader"></div>
+        <button class="stop" onclick="stopScanner()">Stop Camera</button>
+
+        <div class="student-box" id="studentBox">
+            <img id="studentImg">
+            <p><strong id="studentName"></strong></p>
+            <p id="studentRoll"></p>
+            <p id="studentWing"></p>
+            <button class="primary" onclick="submitAttendance()">Confirm Attendance</button>
+        </div>
+
+        <div class="status" id="status"></div>
+    </div>
+</div>
+
+<script>
+// The google form details
+const FORM_ID = "1FAIpQLScrcMu_3glLLmjs2S8rTrF5OwjCY-_ltLZREQVflhExxRo5NA"; 
+const ENTRY_ROLL = "entry.1907581899"; 
+const ENTRY_NAME = "entry.1322263500";
+const ENTRY_WING = "entry.1752723111";
+
+
+let students = {};
+let scannedStudent = null;
+let qr;
+
+// Loading the students.json
+fetch("students.json")
+.then(res => res.json())
+.then(data => students = data);
+
+// Staring the scanner
+qr = new Html5Qrcode("reader");
+qr.start(
+    { facingMode: "environment" },
+    { fps: 10, qrbox: 250 },
+    onScanSuccess
+);
+
+
+function onScanSuccess(decodedText) {
+    let qrData;
+
+    try {
+        qrData = JSON.parse(decodedText);
+    } catch {
+        showStatus(" Invalid QR format");
+        return;
+    }
+
+    const { name, roll, wing } = qrData;
+
+    if (!name || !roll || !wing) {
+        showStatus("Incomplete QR data");
+        return;
+    }
+
+    if (!students[roll]) {
+        showStatus("Roll number not found");
+        return;
+    }
+
+    scannedStudent = { name, roll, wing };
+
+    document.getElementById("studentImg").src = students[roll].image;
+    document.getElementById("studentName").textContent = name;
+    document.getElementById("studentRoll").textContent = "Roll: " + roll;
+    document.getElementById("studentWing").textContent = "Wing: " + wing;
+
+    document.getElementById("studentBox").style.display = "block";
+    qr.pause();
+}
+
+
+// Submitting the attendance to the google Form
+function submitAttendance() {
+    const url =
+        `https://docs.google.com/forms/d/e/${FORM_ID}/formResponse?` +
+        `${ENTRY_ROLL}=${encodeURIComponent(scannedStudent.roll)}&` +
+        `${ENTRY_NAME}=${encodeURIComponent(scannedStudent.name)}&` +
+        `${ENTRY_WING}=${encodeURIComponent(scannedStudent.wing)}&submit=Submit`;
+
+    fetch(url, { mode: "no-cors" });
+
+    showStatus("Attendance Marked");
+    document.getElementById("studentBox").style.display = "none";
+
+    setTimeout(() => qr.resume(), 2000);
+}
+
+// Stopping the scanner
+function stopScanner() {
+    qr.stop();
+}
+
+// Displaying status messages
+function showStatus(msg) {
+    document.getElementById("status").textContent = msg;
+}
+</script>
+</body>
+</html>
