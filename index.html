@@ -8,28 +8,44 @@
 <script src="https://unpkg.com/html5-qrcode"></script>
 
 <style>
+html, body {
+    height: 100%;
+}
+
 body {
     font-family: system-ui, sans-serif;
-    background: #f4f6f9;
+    background: linear-gradient(135deg, #0f172a, #1e293b);
+    background-repeat: no-repeat;
+    background-attachment: fixed;
     margin: 0;
-    padding: 20px;
+    padding: 0px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
 }
+
 
 .container {
     max-width: 420px;
     margin: auto;
+
 }
 
 .card {
-    background: #fff;
-    padding: 16px;
+    background: linear-gradient(135deg, #1e293b, #334155);
+    color: #f8fafc;
+    background-repeat: no-repeat;
+    padding: 100px;
+    width: auto;
+    height: auto;
     border-radius: 12px;
     box-shadow: 0 4px 10px rgba(0,0,0,0.08);
+    
 }
 
 h2 {
     text-align: center;
-    color: #28a745;
+    color: #000000;
 }
 
 #reader {
@@ -47,12 +63,12 @@ button {
 }
 
 .primary {
-    background: #28a745;
+    background: linear-gradient(135deg, #0f172a, #1e293b);
     color: #fff;
 }
 
 .stop {
-    background: #dc3545;
+    background: linear-gradient(135deg, #0f172a, #1e293b);
     color: #fff;
 }
 
@@ -62,7 +78,6 @@ button {
     font-size: 0.9rem;
 }
 
-/* ===== MODAL ===== */
 .modal {
     display: none;
     position: fixed;
@@ -97,17 +112,13 @@ button {
 
 
         <div style="text-align:center; margin-bottom:10px;">
-            <img src="INIT-Logo.jpeg" alt="INIT Logo" style="width:80px;">
+            <img src="logo-nobg.png" alt="INIT Logo" style="width:200px;"><h2>INIT Attendance</h2>
         </div>
-
-        <h2>INIT Attendance</h2>
-
-
         <div id="reader"></div>
-
-
         <button class="primary" onclick="startScanner()">Start Camera</button>
         <button class="stop" onclick="stopScanner()">Stop Camera</button>
+        <button class="primary" onclick="exportCSV()">Export Attendance</button>
+
 
         <div class="status" id="status"></div>
     </div>
@@ -127,6 +138,7 @@ button {
 </div>
 
 <script>
+let attendanceLog = [];
 
 const FORM_ID = "1FAIpQLScrcMu_3glLLmjs2S8rTrF5OwjCY-_ltLZREQVflhExxRo5NA";
 const ENTRY_ROLL = "entry.1907581899";
@@ -185,6 +197,15 @@ function onScanSuccess(decodedText) {
 function submitAttendance() {
     if (!scannedStudent) return;
 
+    // Store locally
+    attendanceLog.push({
+        roll: scannedStudent.roll,
+        name: scannedStudent.name,
+        wing: scannedStudent.wing,
+        time: new Date().toLocaleString()
+    });
+
+    // Submit to Google Form
     const url =
         `https://docs.google.com/forms/d/e/${FORM_ID}/formResponse?` +
         `${ENTRY_ROLL}=${encodeURIComponent(scannedStudent.roll)}&` +
@@ -196,6 +217,7 @@ function submitAttendance() {
     showStatus(`Marked: ${scannedStudent.roll}`);
     closeModal();
 }
+
 
 
 function openModal() {
@@ -223,6 +245,28 @@ function showStatus(msg) {
     document.getElementById("status").textContent = msg;
 }
 
+function exportCSV() {
+    if (attendanceLog.length === 0) {
+        alert("No attendance data to export.");
+        return;
+    }
+
+    let csv = "Roll,Name,Wing,Time\n";
+
+    attendanceLog.forEach(row => {
+        csv += `"${row.roll}","${row.name}","${row.wing}","${row.time}"\n`;
+    });
+
+    const blob = new Blob([csv], { type: "text/csv;charset=utf-8;" });
+    const url = URL.createObjectURL(blob);
+
+    const link = document.createElement("a");
+    link.href = url;
+    link.download = `INIT_Attendance_${new Date().toISOString().slice(0,10)}.csv`;
+    link.click();
+
+    URL.revokeObjectURL(url);
+}
 
 window.onload = () => {
     document.getElementById("studentModal").style.display = "none";
