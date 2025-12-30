@@ -6,9 +6,8 @@
 <title>INIT QR Attendance</title>
 
 <script src="https://unpkg.com/html5-qrcode"></script>
-
 <style>
-html, body {
+    html, body {
     height: 100%;
 }
 
@@ -115,7 +114,9 @@ button {
         <div id="reader"></div>
         <button class="primary" onclick="startScanner()">Start Camera</button>
         <button class="stop" onclick="stopScanner()">Stop Camera</button>
-        <button class="primary" onclick="exportCSV()">Export Attendance</button>
+        <button class="primary" onclick="exportExcel()">Export Attendance (Excel)</button>
+        <button class="stop" onclick="clearAllAttendance()">Clear All Attendance</button>
+
 
 
         <div class="status" id="status"></div>
@@ -135,7 +136,8 @@ button {
     </div>
 </div>
 
-<script>
+<script src="https://cdn.jsdelivr.net/npm/xlsx/dist/xlsx.full.min.js">
+
 let attendanceLog = [];
 
 const FORM_ID = "1FAIpQLScrcMu_3glLLmjs2S8rTrF5OwjCY-_ltLZREQVflhExxRo5NA";
@@ -236,6 +238,21 @@ function stopScanner() {
         qr = null;
         showStatus("Camera stopped");
     });
+}
+function clearAllAttendance() {
+    if (attendanceLog.length === 0) {
+        alert("No attendance data to clear.");
+        return;
+    }
+
+    const confirmClear = confirm(
+        `This will permanently clear ${attendanceLog.length} attendance records.\n\nProceed?`
+    );
+
+    if (!confirmClear) return;
+
+    attendanceLog = [];
+    showStatus("All attendance records cleared");
 }
 
 
