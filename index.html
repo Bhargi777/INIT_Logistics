@@ -1,0 +1,66 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="description" content="INIT QR Code Generator - Generate QR codes for your roll number instantly.">
+    <title>INIT QR Code Generator</title>
+    <link rel="stylesheet" href="css/styles.css">
+</head>
+<body>
+
+    <!-- Toast Container -->
+    <div class="toast-container" id="toastContainer"></div>
+
+    <div class="page-wrapper">
+        <div class="container">
+            <div class="card">
+                <!-- Header -->
+                <h1 class="page-title">INIT QR Generator</h1>
+                <p class="page-subtitle">Enter your roll number to generate a downloadable QR code</p>
+
+                <!-- Form -->
+                <form id="qrForm" autocomplete="off">
+                    <div class="form-group">
+                        <label class="form-label" for="rollNumberInput">Roll Number</label>
+                        <input
+                            type="text"
+                            class="form-input"
+                            id="rollNumberInput"
+                            placeholder="e.g. CB.EN.U4CSE12345"
+                            required
+                            autocomplete="off"
+                            spellcheck="false"
+                        >
+                    </div>
+                    <button type="submit" class="btn btn-primary" id="generateBtn">
+                        ⚡ Generate QR Code
+                    </button>
+                </form>
+
+                <!-- QR Output -->
+                <div class="qr-output" id="qrOutput">
+                    <p class="qr-roll-label" id="qrRollLabel"></p>
+                    <div class="qr-canvas-wrap" id="qrCanvasWrap"></div>
+                    <br>
+                    <button class="btn btn-success btn-sm" id="downloadBtn" style="margin-top: 12px;">
+                        ⬇ Download QR Code
+                    </button>
+                </div>
+            </div>
+
+            <!-- Footer -->
+            <p style="text-align: center; margin-top: 24px; font-size: 0.75rem; color: var(--text-muted);">
+                INIT &mdash; NSS Attendance System
+            </p>
+        </div>
+    </div>
+
+    <!-- QRCode.js Library (CDN) -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
+
+    <!-- Generator Logic -->
+    <script src="js/generator.js"></script>
+
+</body>
+</html>
