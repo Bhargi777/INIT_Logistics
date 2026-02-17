@@ -8,11 +8,11 @@
 
 ## 1.1 Purpose
 
-Build a lightweight, static web application for the INIT NSS Attendance System with two core features:
+Build a full-stack web application for the INIT Attendance System with two core features:
 1. **QR Code Generator**: Generate and download a basic QR code for any roll number.
-2. **Attendance Scanner**: Scan QR codes to mark attendance with duplicate prevention and CSV export.
+2. **Attendance Scanner**: Scan QR codes to mark attendance with Supabase cloud storage.
 
-The system uses a **pure dark theme** (black aesthetic) and is a fully client-side application — no backend or database required.
+The system uses a **strict black-and-white theme** and is deployed across **Vercel** (frontend), **Render** (backend), and **Supabase** (database).
 
 ---
 
@@ -21,22 +21,23 @@ The system uses a **pure dark theme** (black aesthetic) and is a fully client-si
 ### Primary Goals
 
 1. **QR Generation**:
-    - Generate a basic QR code from an entered roll number.
+    - Generate a basic QR code from an entered roll number (via backend API).
     - No logo embedding — clean, standard QR codes.
-    - Allow download as PNG.
+    - Display in a modal overlay and allow download as PNG.
 2. **Attendance Scanning** (Admin-only via secret keyword):
     - Scan QR codes using the device camera.
     - Support manual entry of roll numbers.
-    - Prevent duplicate entries.
+    - Prevent duplicate entries (local + Supabase unique constraint).
+    - Real-time sync with Supabase.
     - Export attendance data as CSV.
 3. **Secret Admin Access**:
     - Typing `bhargi` in the roll number field redirects to the Scanner page.
 
 ### Secondary Goals
 
-- **Pure Dark Theme**: A premium, all-black aesthetic with subtle gradients and animations.
-- **Responsive Design**: Optimized for both desktop and mobile devices.
-- **Haptic Feedback**: Vibration cues for successful scans and errors on mobile.
+- **Black & White Theme**: Strict monochrome design — only black and white shades.
+- **Responsive Design**: Optimized for both desktop and mobile.
+- **Haptic Feedback**: Vibration cues for scans and errors on mobile.
 
 ---
 
@@ -45,25 +46,18 @@ The system uses a **pure dark theme** (black aesthetic) and is a fully client-si
 ## 3.1 User Flows
 
 ### A. Student / General User
-1. User visits homepage (`index.html`).
-2. User enters their roll number (e.g., `CB.EN.U4CSE12345`).
+1. User visits homepage.
+2. User enters their roll number.
 3. User clicks "Generate QR Code".
-4. System generates and displays a basic QR code.
-5. User can download the QR image as PNG.
+4. Backend generates QR and returns base64 PNG.
+5. Modal displays QR code with download button.
 
 ### B. Admin / Scanner Access
-1. User types the secret keyword `bhargi` in the roll number input.
-2. System redirects to the Scanner page (`scanner.html`).
-3. **Live Scanner**:
-    - User enables camera permissions.
-    - Scans a valid QR code.
-    - System checks for duplicates and adds to the attendance list.
-4. **Manual Entry**:
-    - User types a roll number manually if scanning fails.
-5. **Data Management**:
-    - User views the list of scanned roll numbers.
-    - User exports the list to CSV.
-    - User can clear all records (with confirmation).
+1. User types `bhargi` in the roll number input.
+2. System redirects to the Scanner page (`/scanner`).
+3. **Live Scanner**: Camera-based QR scanning with duplicate detection.
+4. **Manual Entry**: Type roll numbers manually.
+5. **Data Management**: View records, export CSV, clear all.
 
 ---
 
@@ -77,63 +71,96 @@ The system uses a **pure dark theme** (black aesthetic) and is a fully client-si
 ## 4.2 QR Code Configuration
 - **Content**: Plain text of the roll number.
 - **Type**: Basic black-and-white QR code (no logo overlay).
-- **Library**: `qrcode.js` or equivalent client-side library.
+- **Error Correction**: Medium (M).
+
+## 4.3 Database Schema (Supabase)
+**Table**: `attendance`
+
+| Column        | Type        | Constraints      |
+| ------------- | ----------- | ---------------- |
+| `id`          | UUID        | Primary Key      |
+| `roll_number` | Text        | Unique, Not Null |
+| `scanned_at`  | Timestamptz | Default: `now()` |
 
 ---
 
 # 5. Non-Functional Requirements
 
 ## 5.1 UI/UX Design
-- **Theme**: Pure Dark Theme (black background `#000000`).
-- **Aesthetics**: Glassmorphism effects, subtle gradient orbs, smooth transitions.
-- **Feedback**:
-    - **Visual**: Toast notifications for errors and success.
-    - **Haptic**: Vibration patterns for success (short) vs. error (long/double).
+- **Theme**: Strict black (`#000000`) and white (`#ededed`) only.
+- **Aesthetics**: Glassmorphism cards, subtle white/gray borders, smooth transitions.
+- **Feedback**: Error modals (auto-dismiss 3s), haptic vibration.
 
 ## 5.2 Performance
-- Fully client-side — no server or database dependency.
-- QR Generation: Instant (client-side).
+- QR Generation: Server-side via Express API.
 - Scanner FPS: ~10 frames per second.
+- Supabase Realtime: Instant updates across connected clients.
 
 ---
 
 # 6. Technical Architecture
 
 ## 6.1 Tech Stack
-- **Frontend**: Vanilla HTML, CSS, JavaScript.
+- **Frontend**: Next.js (App Router), TailwindCSS v4, TypeScript.
+- **Backend**: Express.js (Node.js).
+- **Database**: Supabase (PostgreSQL).
 - **Libraries**:
-    - `qrcodejs` (QR Code generation).
-    - `html5-qrcode` (QR Code scanning).
-- **No backend or database** — fully static.
+    - `html5-qrcode` (Scanning).
+    - `qrcode` (Generation - backend).
+    - `@supabase/supabase-js` (DB client).
 
-## 6.2 File Structure
+## 6.2 Folder Structure
 
 ```
 .
-├── index.html          # Home / QR Generator page
-├── scanner.html        # Attendance Scanner page
-├── css/
-│   └── styles.css      # Global styles (dark theme)
-├── js/
-│   ├── generator.js    # QR generation logic
-│   └── scanner.js      # QR scanning + attendance logic
-├── Members.csv         # Member reference data
-├── PRD.md              # This document
-└── README.md           # Project setup instructions
+├── backend/
+│   ├── routes/
+│   │     └── qr.js        # QR Generation API
+│   ├── server.js           # Express Server
+│   ├── package.json
+│   └── .env.example
+├── frontend/
+│   ├── app/
+│   │     ├── globals.css   # Global Styles
+│   │     ├── layout.tsx    # Root Layout
+│   │     ├── page.tsx      # Home / Generator
+│   │     └── scanner/
+│   │           └── page.tsx # Scanner Dashboard
+│   ├── components/
+│   │     └── QRModal.tsx   # QR Display Modal
+│   ├── lib/
+│   │     └── supabase.ts   # Supabase Client
+│   ├── services/
+│   │     └── api.ts        # Backend API calls
+│   ├── package.json
+│   └── .env.example
+├── Members.csv
+├── PRD.md
+└── README.md
 ```
 
 ---
 
 # 7. Deployment
 
-- **Hosting**: GitHub Pages or any static file server.
-- **No build step required** — just serve the HTML files.
+- **Frontend**: Vercel (auto-deploys from `frontend/` directory).
+- **Backend**: Render (deploys `backend/` directory).
+- **Database**: Supabase Cloud.
+
+### Environment Variables
+
+**Frontend (Vercel)**:
+- `NEXT_PUBLIC_BACKEND_URL` — Render backend URL
+- `NEXT_PUBLIC_SUPABASE_URL` — Supabase project URL
+- `NEXT_PUBLIC_SUPABASE_ANON_KEY` — Supabase anon key
+
+**Backend (Render)**:
+- `PORT` — Server port (default: 5000)
 
 ---
 
 # 8. Future Roadmap
 
-1. **Authentication**: Replace `bhargi` keyword with proper auth.
+1. **Authentication**: Replace `bhargi` keyword with proper Supabase Auth.
 2. **Event Management**: Support multiple events/sessions.
 3. **Analytics Dashboard**: Visual stats of attendance.
-4. **Cloud Sync**: Optional Supabase integration for persistent storage.

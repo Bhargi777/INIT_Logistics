@@ -1,46 +1,85 @@
 # INIT QR Code Generator & Attendance Scanner
 
-A lightweight, client-side web application for generating QR codes from roll numbers and scanning them for attendance tracking.
+A full-stack attendance system with QR code generation and real-time scanning, built with Next.js, Express, and Supabase.
+
+## Architecture
+
+| Layer      | Tech               | Deployment |
+|------------|--------------------| -----------|
+| Frontend   | Next.js + TypeScript + TailwindCSS | Vercel |
+| Backend    | Express.js + Node.js               | Render |
+| Database   | PostgreSQL                          | Supabase |
 
 ## Features
 
-- **QR Code Generator** — Enter any roll number and instantly generate a downloadable QR code
-- **Attendance Scanner** — Scan QR codes using your device camera to mark attendance
-- **Duplicate Prevention** — Automatically detects and prevents duplicate scans
-- **CSV Export** — Export attendance records as a CSV file
-- **Dark Theme** — Premium, modern dark UI design
-- **Fully Offline** — No backend or database required
+- **QR Code Generator** — Enter a roll number, get a downloadable QR code
+- **Attendance Scanner** — Scan QR codes with device camera
+- **Supabase Realtime** — Instant cloud sync across all connected clients
+- **Duplicate Prevention** — Local + database-level unique constraints
+- **CSV Export** — Export attendance records with timestamps
+- **B&W Design** — Strict black-and-white monochrome theme
 
 ## Quick Start
 
-1. Clone the repository
-2. Open `index.html` in your browser (or use a local server)
-3. Enter a roll number to generate a QR code
+### Backend (Render)
 
-### Admin Access (Scanner)
-
-Type `bhargi` in the roll number field to access the attendance scanner.
-
-## Tech Stack
-
-- HTML5, CSS3, JavaScript (ES6+)
-- [QRCode.js](https://github.com/davidshimjs/qrcodejs) — QR code generation
-- [html5-qrcode](https://github.com/mebjas/html5-qrcode) — QR code scanning
-
-## File Structure
-
+```bash
+cd backend
+npm install
+cp .env.example .env
+npm run dev
 ```
-├── index.html          # QR Code Generator (Home)
-├── scanner.html        # Attendance Scanner
-├── css/
-│   └── styles.css      # Global dark theme styles
-├── js/
-│   ├── generator.js    # QR generation logic
-│   └── scanner.js      # Scanning & attendance logic
-├── Members.csv         # Member reference data
-├── PRD.md              # Product Requirements Document
-└── README.md           # This file
+
+### Frontend (Vercel)
+
+```bash
+cd frontend
+npm install
+cp .env.example .env.local
+# Add your Supabase URL and anon key to .env.local
+npm run dev
 ```
+
+### Supabase Setup
+
+Create an `attendance` table:
+
+```sql
+CREATE TABLE attendance (
+  id UUID DEFAULT gen_random_uuid() PRIMARY KEY,
+  roll_number TEXT UNIQUE NOT NULL,
+  scanned_at TIMESTAMPTZ DEFAULT now()
+);
+
+-- Enable Realtime
+ALTER PUBLICATION supabase_realtime ADD TABLE attendance;
+```
+
+### Admin Access
+
+Type `bhargi` in the roll number field to access the scanner.
+
+## Environment Variables
+
+### Frontend
+
+| Variable | Description |
+|----------|-------------|
+| `NEXT_PUBLIC_BACKEND_URL` | Backend API URL (Render) |
+| `NEXT_PUBLIC_SUPABASE_URL` | Supabase project URL |
+| `NEXT_PUBLIC_SUPABASE_ANON_KEY` | Supabase anon key |
+
+### Backend
+
+| Variable | Description |
+|----------|-------------|
+| `PORT` | Server port (default: 5000) |
+
+## Deployment
+
+1. **Supabase**: Create project → Run the SQL above → Copy URL + anon key.
+2. **Render**: Deploy `backend/` → Set `PORT` env var.
+3. **Vercel**: Deploy `frontend/` → Set all `NEXT_PUBLIC_*` env vars.
 
 ## License
 
