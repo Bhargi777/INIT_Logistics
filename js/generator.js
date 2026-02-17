@@ -1,173 +1,176 @@
 /**
- * INIT QR Code Generator - Generator Logic
- * Handles QR code generation, validation, and download.
+ * INIT QR Code Generator — Generator Logic
+ * Matches the NSS system behavior: modal-based QR display, secret keyword redirect.
  */
 
 // ========================================
-// Configuration
+// Config
 // ========================================
 const SECRET_KEYWORD = 'bhargi';
-const ROLL_MIN_LENGTH = 5;
-const ROLL_MAX_LENGTH = 20;
-const ROLL_PATTERN = /^[A-Za-z0-9.\-]+$/;
 
 // ========================================
-// DOM Elements
+// DOM
 // ========================================
-const qrForm = document.getElementById('qrForm');
-const rollInput = document.getElementById('rollNumberInput');
+const rollInput = document.getElementById('rollInput');
 const generateBtn = document.getElementById('generateBtn');
-const qrOutput = document.getElementById('qrOutput');
-const qrCanvasWrap = document.getElementById('qrCanvasWrap');
+const btnText = document.getElementById('btnText');
+const errorMsg = document.getElementById('errorMsg');
+
+// Modal
+const qrModal = document.getElementById('qrModal');
+const qrImageContainer = document.getElementById('qrImageContainer');
 const qrRollLabel = document.getElementById('qrRollLabel');
 const downloadBtn = document.getElementById('downloadBtn');
-const toastContainer = document.getElementById('toastContainer');
+const modalCloseBtn = document.getElementById('modalCloseBtn');
 
 // ========================================
-// QR Code Instance
+// State
 // ========================================
 let qrInstance = null;
 
 // ========================================
-// Toast Notification System
-// ========================================
-function showToast(message, type = 'info') {
-    const toast = document.createElement('div');
-    toast.className = `toast toast-${type}`;
-    toast.textContent = message;
-    toastContainer.appendChild(toast);
-
-    // Auto-remove after 3 seconds
-    setTimeout(() => {
-        toast.style.opacity = '0';
-        toast.style.transform = 'translateX(30px)';
-        toast.style.transition = 'all 0.3s ease';
-        setTimeout(() => toast.remove(), 300);
-    }, 3000);
-}
-
-// ========================================
 // Validation
 // ========================================
-function validateRollNumber(value) {
-    if (!value || value.trim().length === 0) {
-        return { valid: false, error: 'Please enter a roll number.' };
-    }
-
+function validate(value) {
     const trimmed = value.trim();
+    if (!trimmed) return { ok: false, error: 'Please enter a roll number.' };
+    if (trimmed.length < 5 || trimmed.length > 20) return { ok: false, error: 'Roll number must be between 5 and 20 characters.' };
+    if (!/^[a-zA-Z0-9.\-]+$/.test(trimmed)) return { ok: false, error: 'Roll number must contain only letters, numbers, dots, and hyphens.' };
+    return { ok: true, value: trimmed.toUpperCase() };
+}
 
-    if (trimmed.length < ROLL_MIN_LENGTH) {
-        return { valid: false, error: `Roll number must be at least ${ROLL_MIN_LENGTH} characters.` };
-    }
+function showError(msg) {
+    errorMsg.textContent = msg;
+    errorMsg.classList.remove('hidden');
+}
 
-    if (trimmed.length > ROLL_MAX_LENGTH) {
-        return { valid: false, error: `Roll number must be at most ${ROLL_MAX_LENGTH} characters.` };
-    }
-
-    if (!ROLL_PATTERN.test(trimmed)) {
-        return { valid: false, error: 'Roll number can only contain letters, numbers, dots, and hyphens.' };
-    }
-
-    return { valid: true, value: trimmed.toUpperCase() };
+function clearError() {
+    errorMsg.textContent = '';
+    errorMsg.classList.add('hidden');
 }
 
 // ========================================
-// Secret Keyword Check
+// Secret keyword check
 // ========================================
-function checkSecretKeyword(value) {
+function isSecretKeyword(value) {
     return value.trim().toLowerCase() === SECRET_KEYWORD;
 }
 
 // ========================================
-// QR Code Generation
+// QR Generation (into modal)
 // ========================================
-function generateQRCode(rollNumber) {
-    // Clear previous QR code
-    qrCanvasWrap.innerHTML = '';
+function generateQR(rollNumber) {
+    // Clear previous
+    qrImageContainer.innerHTML = '';
     qrInstance = null;
 
-    // Create new QR code
-    qrInstance = new QRCode(qrCanvasWrap, {
+    // Generate
+    qrInstance = new QRCode(qrImageContainer, {
         text: rollNumber,
-        width: 200,
-        height: 200,
+        width: 220,
+        height: 220,
         colorDark: '#000000',
         colorLight: '#ffffff',
         correctLevel: QRCode.CorrectLevel.M
     });
 
-    // Update label
+    // Style the generated image/canvas
+    setTimeout(() => {
+        const img = qrImageContainer.querySelector('img');
+        const canvas = qrImageContainer.querySelector('canvas');
+        if (img) {
+            img.classList.add('qr-image');
+            img.style.width = '220px';
+            img.style.height = '220px';
+        }
+        if (canvas) {
+            canvas.classList.add('qr-image');
+        }
+    }, 50);
+
     qrRollLabel.textContent = rollNumber;
-
-    // Show output section
-    qrOutput.classList.add('visible');
-
-    showToast('QR Code generated successfully!', 'success');
+    openModal();
 }
 
 // ========================================
-// Download QR Code
+// Modal Controls
 // ========================================
-function downloadQR() {
-    const canvas = qrCanvasWrap.querySelector('canvas');
-    if (!canvas) {
-        showToast('No QR code to download.', 'error');
-        return;
+function openModal() {
+    qrModal.classList.remove('hidden');
+    document.body.style.overflow = 'hidden';
+}
+
+function closeModal() {
+    qrModal.classList.add('hidden');
+    document.body.style.overflow = '';
+}
+
+modalCloseBtn.addEventListener('click', closeModal);
+
+// Close on overlay click
+qrModal.addEventListener('click', (e) => {
+    if (e.target === qrModal) closeModal();
+});
+
+// Close on Escape
+document.addEventListener('keydown', (e) => {
+    if (e.key === 'Escape' && !qrModal.classList.contains('hidden')) {
+        closeModal();
     }
+});
+
+// ========================================
+// Download
+// ========================================
+downloadBtn.addEventListener('click', () => {
+    const canvas = qrImageContainer.querySelector('canvas');
+    if (!canvas) return;
 
     const rollNumber = qrRollLabel.textContent;
     const link = document.createElement('a');
-    link.download = `QR_${rollNumber}.png`;
+    link.download = `${rollNumber}_qr.png`;
     link.href = canvas.toDataURL('image/png');
+    document.body.appendChild(link);
     link.click();
-
-    showToast('QR Code downloaded!', 'success');
-}
-
-// ========================================
-// Auto-capitalize Input
-// ========================================
-rollInput.addEventListener('input', (e) => {
-    // Don't auto-capitalize if it might be the secret keyword
-    const val = e.target.value.trim().toLowerCase();
-    if (val === SECRET_KEYWORD || SECRET_KEYWORD.startsWith(val)) {
-        return;
-    }
-    e.target.value = e.target.value.toUpperCase();
+    document.body.removeChild(link);
 });
 
 // ========================================
-// Form Submit Handler
+// Input handlers
 // ========================================
-qrForm.addEventListener('submit', (e) => {
-    e.preventDefault();
+rollInput.addEventListener('input', () => {
+    clearError();
+    const val = rollInput.value.trim().toLowerCase();
+    // Don't auto-capitalize if typing the secret keyword
+    if (val === SECRET_KEYWORD || SECRET_KEYWORD.startsWith(val)) return;
+    rollInput.value = rollInput.value.toUpperCase();
+});
 
+rollInput.addEventListener('keydown', (e) => {
+    if (e.key === 'Enter') {
+        generateBtn.click();
+    }
+});
+
+// ========================================
+// Generate button
+// ========================================
+generateBtn.addEventListener('click', () => {
+    clearError();
     const inputValue = rollInput.value;
 
-    // Check for secret keyword first
-    if (checkSecretKeyword(inputValue)) {
-        showToast('Redirecting to scanner...', 'info');
-        setTimeout(() => {
-            window.location.href = 'scanner.html';
-        }, 500);
+    // Secret keyword check
+    if (isSecretKeyword(inputValue)) {
+        window.location.href = 'scanner.html';
         return;
     }
 
-    // Validate roll number
-    const validation = validateRollNumber(inputValue);
-    if (!validation.valid) {
-        showToast(validation.error, 'error');
+    // Validate
+    const result = validate(inputValue);
+    if (!result.ok) {
+        showError(result.error);
         return;
     }
 
-    // Generate QR code
-    generateQRCode(validation.value);
-});
-
-// ========================================
-// Download Button Handler
-// ========================================
-downloadBtn.addEventListener('click', (e) => {
-    e.preventDefault();
-    downloadQR();
+    generateQR(result.value);
 });
