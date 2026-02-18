@@ -14,7 +14,7 @@ app.use("/api", qrRoutes);
 
 // Health check
 app.get("/", (req, res) => {
-    res.json({ status: "ok", message: "INIT QR Generator API is running" });
+    res.json({ status: "ok", message: "QR Generator API is running" });
 });
 
 app.listen(PORT, () => {

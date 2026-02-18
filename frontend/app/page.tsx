@@ -16,6 +16,7 @@ export default function Home() {
   const handleGenerate = async () => {
     setError("");
 
+    // Client-side validation
     const trimmed = rollNumber.trim();
     // Check for admin redirection
     if (trimmed.toLowerCase() === "bhargi") {
@@ -61,6 +62,10 @@ export default function Home() {
 
   return (
     <main className="relative flex min-h-screen flex-col items-center justify-center overflow-hidden bg-black px-4">
+      {/* Background gradient orbs */}
+      <div className="pointer-events-none absolute -left-40 -top-40 h-96 w-96 rounded-full bg-[#e94560]/20 blur-[120px]" />
+      <div className="pointer-events-none absolute -bottom-40 -right-40 h-96 w-96 rounded-full bg-[#533483]/20 blur-[120px]" />
+
       {/* Card */}
       <div className="relative z-10 w-full max-w-md rounded-2xl border border-white/[0.08] bg-gradient-to-b from-white/[0.06] to-white/[0.02] p-8 shadow-2xl backdrop-blur-xl">
         {/* Header */}
@@ -92,12 +97,12 @@ export default function Home() {
             onKeyDown={handleKeyPress}
             placeholder="e.g. CB.EN.U4CSE12345"
             maxLength={20}
-            className="w-full rounded-xl border border-white/10 bg-white/[0.04] px-4 py-3 text-sm text-white placeholder-white/25 outline-none transition-all duration-200 focus:border-white/50 focus:bg-white/[0.06] focus:ring-2 focus:ring-white/10"
+            className="w-full rounded-xl border border-white/10 bg-white/[0.04] px-4 py-3 text-sm text-white placeholder-white/25 outline-none transition-all duration-200 focus:border-[#e94560]/50 focus:bg-white/[0.06] focus:ring-2 focus:ring-[#e94560]/20"
           />
 
           {/* Error message */}
           {error && (
-            <p id="error-message" className="mt-2 text-xs text-white/60">
+            <p id="error-message" className="mt-2 text-xs text-red-400">
               {error}
             </p>
           )}
@@ -108,7 +113,7 @@ export default function Home() {
           id="generate-btn"
           onClick={handleGenerate}
           disabled={isLoading}
-          className="relative flex w-full items-center justify-center gap-2 rounded-xl bg-white px-6 py-3.5 text-sm font-semibold text-black shadow-lg transition-all duration-200 hover:scale-[1.02] hover:shadow-xl active:scale-95 disabled:cursor-not-allowed disabled:opacity-60 disabled:hover:scale-100"
+          className="relative flex w-full items-center justify-center gap-2 rounded-xl bg-gradient-to-r from-[#e94560] to-[#c23152] px-6 py-3.5 text-sm font-semibold text-white shadow-lg transition-all duration-200 hover:scale-[1.02] hover:shadow-xl active:scale-95 disabled:cursor-not-allowed disabled:opacity-60 disabled:hover:scale-100"
         >
           {isLoading ? (
             <>
@@ -160,7 +165,7 @@ export default function Home() {
 
       {/* Footer */}
       <p className="mt-8 text-xs text-white/20">
-        INIT
+        INIT Logistics
       </p>
 
       {/* QR Modal */}

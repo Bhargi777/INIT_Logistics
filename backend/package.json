@@ -1,7 +1,7 @@
 {
-    "name": "init-qr-backend",
+    "name": "qr-backend",
     "version": "1.0.0",
-    "description": "Backend API for INIT QR Code Generator",
+    "description": "Backend API for Roll Number QR Generator",
     "main": "server.js",
     "scripts": {
         "start": "node server.js",
@@ -10,6 +10,7 @@
     "dependencies": {
         "cors": "^2.8.5",
         "express": "^4.18.2",
-        "qrcode": "^1.5.3"
+        "qrcode": "^1.5.3",
+        "sharp": "^0.33.2"
     }
 }
