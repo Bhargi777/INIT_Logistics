@@ -3,7 +3,7 @@
 import { useState, useEffect, useRef, useCallback } from "react";
 import { Html5Qrcode } from "html5-qrcode";
 import Link from "next/link";
-import { supabase } from "@/lib/supabase";
+import { getSupabase } from "@/lib/supabase";
 
 interface ScannedEntry {
     id?: string;
@@ -21,8 +21,7 @@ export default function ScannerPage() {
 
     // Fetch entries from Supabase
     const fetchEntries = useCallback(async () => {
-        const { data, error } = await supabase
-            .from("attendance")
+        const { data, error } = await getSupabase().from("attendance")
             .select("*")
             .order("scanned_at", { ascending: false });
 
@@ -38,8 +37,7 @@ export default function ScannerPage() {
     useEffect(() => {
         fetchEntries();
 
-        const channel = supabase
-            .channel("attendance_changes")
+        const channel = getSupabase().channel("attendance_changes")
             .on(
                 "postgres_changes",
                 { event: "*", schema: "public", table: "attendance" },
@@ -50,7 +48,7 @@ export default function ScannerPage() {
             .subscribe();
 
         return () => {
-            supabase.removeChannel(channel);
+            getSupabase().removeChannel(channel);
         };
     }, [fetchEntries]);
 
@@ -104,8 +102,7 @@ export default function ScannerPage() {
             return;
         }
 
-        const { error } = await supabase
-            .from("attendance")
+        const { error } = await getSupabase().from("attendance")
             .insert([{ roll_number: trimmed }]);
 
         if (error) {
@@ -140,14 +137,13 @@ export default function ScannerPage() {
 
     const removeEntry = async (id: string) => {
         if (!confirm("Remove this entry?")) return;
-        const { error } = await supabase.from("attendance").delete().eq("id", id);
+        const { error } = await getSupabase().from("attendance").delete().eq("id", id);
         if (error) triggerError("Delete failed: " + error.message);
     };
 
     const clearAll = async () => {
         if (!confirm("DANGER: This will delete ALL attendance records. Continue?")) return;
-        const { error } = await supabase
-            .from("attendance")
+        const { error } = await getSupabase().from("attendance")
             .delete()
             .neq("id", "00000000-0000-0000-0000-000000000000");
         if (error) triggerError("Clear failed: " + error.message);
