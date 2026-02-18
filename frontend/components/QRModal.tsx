@@ -91,7 +91,7 @@ export default function QRModal({
                     </p>
                     <button
                         onClick={handleDownload}
-                        className="mt-6 flex w-full items-center justify-center gap-2 rounded-xl bg-white px-6 py-3 text-sm font-semibold text-black shadow-lg transition-all duration-200 hover:scale-[1.02] active:scale-95"
+                        className="mt-6 flex w-full items-center justify-center gap-2 rounded-xl bg-gradient-to-r from-[#e94560] to-[#c23152] px-6 py-3 text-sm font-semibold text-white shadow-lg transition-all duration-200 hover:scale-[1.02] active:scale-95"
                     >
                         Download QR Code
                     </button>

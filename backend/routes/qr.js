@@ -1,14 +1,22 @@
 const express = require("express");
 const QRCode = require("qrcode");
+const sharp = require("sharp");
+const path = require("path");
 
 const router = express.Router();
 
-// QR dimensions
+const LOGO_PATH = path.join(__dirname, "..", "assets", "amrita-logo.png");
+
+// Canvas dimensions
+const CANVAS_WIDTH = 350;
+const CANVAS_HEIGHT = 450;
+const LOGO_WIDTH = 200;
 const QR_SIZE = 300;
+const MARGIN = 30;
 
 /**
  * Validate roll number input.
- * Alphanumeric, dots, and hyphens only, 5-20 characters.
+ * Alphanumeric and hyphens only, 5-20 characters.
  */
 function validateRollNumber(rollNumber) {
     if (!rollNumber || typeof rollNumber !== "string") {
@@ -23,8 +31,8 @@ function validateRollNumber(rollNumber) {
 
 /**
  * POST /api/generate-qr
- * Accepts { rollNumber } and returns a base64-encoded PNG.
- * Basic QR code — no logo overlay.
+ * Accepts { rollNumber } and returns a base64-encoded PNG
+ * with the Amrita logo above the QR code.
  */
 router.post("/generate-qr", async (req, res) => {
     try {
@@ -41,7 +49,7 @@ router.post("/generate-qr", async (req, res) => {
 
         const trimmedRoll = rollNumber.trim();
 
-        // Generate QR code as buffer (basic, no logo)
+        // Generate QR code as buffer
         const qrBuffer = await QRCode.toBuffer(trimmedRoll, {
             width: QR_SIZE,
             errorCorrectionLevel: "M",
@@ -51,7 +59,40 @@ router.post("/generate-qr", async (req, res) => {
             },
         });
 
-        const base64Image = qrBuffer.toString("base64");
+        // Load and resize logo
+        const logoBuffer = await sharp(LOGO_PATH)
+            .resize({ width: LOGO_WIDTH })
+            .toBuffer();
+
+        const logoMeta = await sharp(logoBuffer).metadata();
+        const logoHeight = logoMeta.height;
+
+        // Calculate positions to center everything
+        const logoX = Math.round((CANVAS_WIDTH - LOGO_WIDTH) / 2);
+        const logoY = MARGIN;
+        const qrX = Math.round((CANVAS_WIDTH - QR_SIZE) / 2);
+        const qrY = logoY + logoHeight + MARGIN;
+
+        // Adjust canvas height dynamically
+        const dynamicHeight = qrY + QR_SIZE + MARGIN;
+
+        // Compose final image: white background + logo on top + QR below
+        const composedImage = await sharp({
+            create: {
+                width: CANVAS_WIDTH,
+                height: dynamicHeight,
+                channels: 4,
+                background: { r: 255, g: 255, b: 255, alpha: 1 },
+            },
+        })
+            .composite([
+                { input: logoBuffer, top: logoY, left: logoX },
+                { input: qrBuffer, top: qrY, left: qrX },
+            ])
+            .png()
+            .toBuffer();
+
+        const base64Image = composedImage.toString("base64");
 
         return res.json({
             success: true,
