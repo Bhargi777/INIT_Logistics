@@ -3,7 +3,7 @@
 import { useState, useEffect, useRef, useCallback } from "react";
 import { Html5Qrcode } from "html5-qrcode";
 import Link from "next/link";
-import { getSupabase } from "@/lib/supabase";
+import { getSupabase, getSupabaseError } from "@/lib/supabase";
 
 interface ScannedEntry {
     id?: string;
@@ -18,38 +18,51 @@ export default function ScannerPage() {
     const scannerRef = useRef<Html5Qrcode | null>(null);
     const [modalMessage, setModalMessage] = useState<{ text: string; type: "error" | "success" } | null>(null);
     const [isLoading, setIsLoading] = useState(true);
+    const [configError, setConfigError] = useState<string | null>(null);
 
     // Fetch entries from Supabase
     const fetchEntries = useCallback(async () => {
-        const { data, error } = await getSupabase().from("attendance")
-            .select("*")
-            .order("scanned_at", { ascending: false });
+        try {
+            const { data, error } = await getSupabase().from("attendance")
+                .select("*")
+                .order("scanned_at", { ascending: false });
 
-        if (error) {
-            console.error("Error fetching attendance:", error);
-        } else {
-            setEntries(data || []);
+            if (error) {
+                console.error("Error fetching attendance:", error);
+            } else {
+                setEntries(data || []);
+            }
+        } catch (err) {
+            console.error("Supabase connection error:", err);
+            setConfigError(getSupabaseError() || "Failed to connect to Supabase. Check your environment variables.");
         }
         setIsLoading(false);
     }, []);
 
     // Realtime subscription
     useEffect(() => {
-        fetchEntries();
+        try {
+            fetchEntries();
 
-        const channel = getSupabase().channel("attendance_changes")
-            .on(
-                "postgres_changes",
-                { event: "*", schema: "public", table: "attendance" },
-                () => {
-                    fetchEntries();
-                }
-            )
-            .subscribe();
+            const supabase = getSupabase();
+            const channel = supabase.channel("attendance_changes")
+                .on(
+                    "postgres_changes",
+                    { event: "*", schema: "public", table: "attendance" },
+                    () => {
+                        fetchEntries();
+                    }
+                )
+                .subscribe();
 
-        return () => {
-            getSupabase().removeChannel(channel);
-        };
+            return () => {
+                getSupabase().removeChannel(channel);
+            };
+        } catch (err) {
+            console.error("Supabase init error:", err);
+            setConfigError(getSupabaseError() || "Failed to connect to Supabase. Check your environment variables.");
+            setIsLoading(false);
+        }
     }, [fetchEntries]);
 
     // Auto-hide modal
@@ -210,6 +223,29 @@ export default function ScannerPage() {
             </div>
         );
     };
+
+    // ==========================================
+    // CONFIG ERROR SCREEN
+    // ==========================================
+    if (configError) {
+        return (
+            <main className="flex min-h-screen flex-col items-center justify-center bg-black p-8 text-white">
+                <div className="max-w-md rounded-2xl border border-red-500/30 bg-black p-8 text-center shadow-[0_0_50px_rgba(233,69,96,0.2)]">
+                    <div className="mx-auto mb-4 flex h-16 w-16 items-center justify-center rounded-full bg-red-500/20 text-3xl">⚠️</div>
+                    <h2 className="mb-2 text-xl font-bold text-red-400">Configuration Required</h2>
+                    <p className="mb-4 text-sm text-white/60">{configError}</p>
+                    <div className="rounded-lg bg-white/5 p-4 text-left text-xs text-white/40">
+                        <p className="mb-2 font-mono">Required environment variables:</p>
+                        <p className="font-mono text-red-300">NEXT_PUBLIC_SUPABASE_URL</p>
+                        <p className="font-mono text-red-300">NEXT_PUBLIC_SUPABASE_ANON_KEY</p>
+                    </div>
+                    <Link href="/" className="mt-6 inline-block rounded-lg bg-white/10 px-6 py-2 text-sm hover:bg-white/20">
+                        ← Back to Home
+                    </Link>
+                </div>
+            </main>
+        );
+    }
 
     // ==========================================
     // SCANNER + LIVE TABLE
